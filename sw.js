@@ -1,6 +1,6 @@
 // Simple offline cache: network first, fall back to cache.
-const CACHE = 'study-planner-v1';
-const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon.ico'];
+const CACHE = 'study-planner-v3';
+const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon.ico'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

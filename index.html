@@ -12,8 +12,14 @@
 <link rel="icon" href="icons/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
+<meta name="color-scheme" content="light dark">
+<script>
+try{var _m=JSON.parse(localStorage.getItem('ledger-planner')||'{}').themeMode;
+var _d=_m==='dark'||((!_m||_m==='auto')&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+document.documentElement.setAttribute('data-theme',_d?'dark':'light');}catch(e){}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -50,7 +56,7 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
 /* ---------- Sidebar ---------- */
-.brand{padding:20px 20px 14px;display:flex;align-items:baseline;gap:8px}
+.brand{padding:20px 20px 14px;display:flex;align-items:center;gap:10px}
 .brand h1{font-size:19px;font-weight:800;letter-spacing:-.02em}
 .brand .tag{font-size:10.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em}
 .side-section{padding:6px 12px 14px}
@@ -113,6 +119,7 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
   background:var(--panel);flex-wrap:wrap;
 }
 .topbar h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.top-logo{width:34px;height:34px;border-radius:9px;flex:none;display:block;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .top-date{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)}
 .top-spacer{flex:1}
 .search{
@@ -316,7 +323,7 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
   <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <img src="icons/icon-192.png" alt="" width="28" height="28" style="align-self:center;border-radius:7px"><h1>Study Planner</h1>
+      <img src="icons/icon-192.png" alt="" width="32" height="32" style="align-self:center;border-radius:8px"><h1>Study Planner</h1>
     </div>
 
     <div class="side-section">
@@ -409,6 +416,7 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
       <button class="icon-btn menu-btn" id="menu-btn" aria-label="Open menu">
         <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
+      <img class="top-logo" src="icons/icon-192.png" alt="Study Planner" width="34" height="34">
       <div>
         <h2 id="view-title">List</h2>
         <div class="top-date" id="top-date"></div>
@@ -506,6 +514,7 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
     <h3>Export backup</h3>
     <p style="font-size:13px;color:var(--muted);margin-bottom:16px" id="exp-note"></p>
     <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn primary" id="exp-share" style="justify-content:center;display:none">Save / Share backup</button>
       <a class="btn primary" id="exp-download" style="justify-content:center;text-decoration:none">Download backup file</a>
       <a class="btn" id="exp-gmail" target="_blank" rel="noopener" style="justify-content:center;text-decoration:none">Open Gmail to email it to yourself</a>
       <button class="btn" id="exp-copy" style="justify-content:center">Copy backup data to clipboard</button>
@@ -515,7 +524,7 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
       <textarea id="exp-data" readonly style="min-height:110px;font-family:'JetBrains Mono',monospace;font-size:11px"></textarea>
     </div>
     <p style="font-size:12px;color:var(--muted);margin-top:14px">
-      The file saves to your browser's downloads folder (browsers don't allow pages to save straight to the desktop — you can set Downloads to your desktop in browser settings). Attach it to the Gmail draft and send. On the other computer, open this same HTML file and use Import backup.
+      Keep this file somewhere safe. To restore on another device, open Study Planner and use Import backup.
     </p>
     <div class="modal-actions">
       <button class="btn" id="exp-close">Close</button>
@@ -547,7 +556,7 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
 <script>
 /* =================== State & storage =================== */
 const COLORS=['#2B59C3','#3E8E63','#D64545','#E08A2E','#8B5CF6','#0E9BA4','#C2477F','#64748B'];
-let state={tasks:[],projects:[],theme:'light',pomoDone:0,pomoDay:''};
+let state={tasks:[],projects:[],theme:'light',themeMode:'auto',pomoDone:0,pomoDay:''};
 let mem=null; // in-memory fallback
 
 async function save(){
@@ -1103,6 +1112,9 @@ $('pomo-reset').onclick=()=>{pomoRun=false;pomoBreak=false;pomoLeft=FOCUS;pomoRe
 
 /* =================== Export / Import =================== */
 let exportUrl=null;
+function isMobile(){return (window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);}
+function backupFile(){return new File([buildBackup()],'study-planner-backup-'+todayStr()+'.json',{type:'application/json'});}
+function canShareFiles(){try{return !!(navigator.canShare&&navigator.share&&navigator.canShare({files:[backupFile()]}));}catch(e){return false;}}
 function buildBackup(){
   const payload={app:'ledger-planner',version:1,exportedAt:new Date().toISOString(),data:state};
   return JSON.stringify(payload,null,2);
@@ -1117,7 +1129,8 @@ $('export-btn').onclick=()=>{
   if(exportUrl)URL.revokeObjectURL(exportUrl);
   exportUrl=URL.createObjectURL(new Blob([json],{type:'application/json'}));
   const sandboxed=window.self!==window.top; // running inside a preview iframe
-  if(!sandboxed){
+  const mobile=isMobile();
+  if(!sandboxed&&!mobile){
     // attempt automatic download + gmail synchronously (keeps the user-gesture, so no popup block)
     try{
       const a=document.createElement('a');
@@ -1130,11 +1143,20 @@ $('export-btn').onclick=()=>{
   $('exp-download').href=exportUrl;
   $('exp-download').download='study-planner-backup-'+todayStr()+'.json';
   $('exp-gmail').href=gmailUrl();
-  $('exp-note').textContent=sandboxed
+  $('exp-gmail').style.display=mobile?'none':'';
+  $('exp-share').style.display=(mobile&&canShareFiles())?'':'none';
+  $('exp-download').className=(mobile&&canShareFiles())?'btn':'btn primary';
+  $('exp-note').textContent=mobile
+    ?'Tap Save / Share, then choose Save to Files, Mail, Notes or any app. Nothing opens automatically.'
+    :sandboxed
     ?'You are viewing this inside a preview, which blocks downloads and new tabs. Select the data below and copy it — or download the HTML file and open it directly in your browser for one-click export.'
     :'If the download or Gmail tab did not appear automatically, use the buttons below.';
   $('exp-data').value=json;
   $('export-overlay').classList.add('open');
+};
+$('exp-share').onclick=async()=>{
+  try{await navigator.share({files:[backupFile()],title:'Study Planner backup'});}
+  catch(e){if(e&&e.name!=='AbortError')toast('Sharing failed — use Download or Copy instead');}
 };
 $('exp-data').addEventListener('focus',e=>e.target.select());
 $('exp-data').addEventListener('click',e=>e.target.select());
@@ -1172,7 +1194,7 @@ function importData(raw){
     if(!confirm('Import this backup? It will replace the tasks and projects currently in this planner ('+state.tasks.length+' tasks).'))return false;
     state.tasks=data.tasks;
     state.projects=data.projects;
-    if(data.theme)state.theme=data.theme;
+    if(data.themeMode)state.themeMode=data.themeMode;
     state.pomoDone=data.pomoDone||0;state.pomoDay=data.pomoDay||'';
     save();applyTheme();renderAll();
     toast('Backup imported — '+state.tasks.length+' tasks restored');
@@ -1229,13 +1251,37 @@ function exportIcs(tasks){
 $('ics-btn').onclick=()=>exportIcs(state.tasks.filter(t=>!t.done));
 
 /* =================== Theme, nav, misc =================== */
+const sysDark=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+function effectiveTheme(){
+  if(state.themeMode==='light'||state.themeMode==='dark')return state.themeMode;
+  return sysDark&&sysDark.matches?'dark':'light';
+}
 function applyTheme(){
-  document.documentElement.dataset.theme=state.theme;
-  $('theme-icon').innerHTML=state.theme==='dark'
+  const eff=effectiveTheme();
+  state.theme=eff;
+  document.documentElement.dataset.theme=eff;
+  document.documentElement.style.colorScheme=eff;
+  const tc=document.querySelector('meta[name="theme-color"]');
+  if(tc)tc.setAttribute('content',eff==='dark'?'#0F1420':'#F3F4F7');
+  const tb=$('theme-btn');
+  if(tb){tb.title='Theme: '+(state.themeMode==='auto'?'Auto (follows your device)':state.themeMode==='dark'?'Dark':'Light');tb.setAttribute('aria-label',tb.title);}
+  $('theme-icon').innerHTML=state.themeMode==='auto'
+    ?'<rect x="3" y="4" width="18" height="12" rx="2"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="16" x2="12" y2="20"/>'
+    :eff==='dark'
     ?'<circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/>'
     :'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
 }
-$('theme-btn').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';applyTheme();save();};
+$('theme-btn').onclick=()=>{
+  // cycle: Auto (follows device) -> Light -> Dark -> Auto
+  const next={auto:'light',light:'dark',dark:'auto'};
+  state.themeMode=next[state.themeMode]||'auto';
+  applyTheme();save();
+  toast('Theme: '+(state.themeMode==='auto'?'Auto (follows your device)':state.themeMode==='dark'?'Dark':'Light'));
+};
+if(sysDark){
+  const onSys=()=>{if(state.themeMode==='auto')applyTheme();};
+  if(sysDark.addEventListener)sysDark.addEventListener('change',onSys);else if(sysDark.addListener)sysDark.addListener(onSys);
+}
 document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.onclick=()=>{
   view=b.dataset.view;renderAll();
   if(window.innerWidth<=860)$('sidebar').classList.remove('open');
